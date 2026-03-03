@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squad Goals</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #b8ff57;
+    --accent2: #57c8ff;
+    --accent3: #ff6b6b;
+    --text: #e8e8f0;
+    --muted: #6a6a8a;
+    --done: #b8ff57;
+    --fail: #ff6b6b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .logo {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .date-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* Screens */
+  .screen { display: none; animation: fadeIn 0.3s ease; }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Welcome screen */
+  .welcome-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--accent); }
+
+  .card h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.03em;
+  }
+
+  .card p {
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0f;
+  }
+
+  .btn-primary:hover { background: #c8ff6a; transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+  .btn-danger { background: var(--accent3); color: white; }
+  .btn-danger:hover { background: #ff8888; }
+
+  input, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, textarea:focus { border-color: var(--accent); }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .field { margin-bottom: 16px; }
+
+  /* Team view */
+  .team-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    gap: 16px;
+  }
+
+  .team-name-display {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  .team-name-display span { color: var(--accent); }
+
+  .team-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .share-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .share-box span {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Members */
+  .members-grid { display: flex; flex-direction: column; gap: 20px; }
+
+  .member-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .member-card.is-me { border-color: var(--accent2); }
+
+  .member-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .member-info { flex: 1; }
+
+  .member-name {
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .member-stats {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .progress-bar-wrap {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .goals-list { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+  .goal-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .goal-item.completed {
+    border-color: rgba(184,255,87,0.2);
+    background: rgba(184,255,87,0.05);
+  }
+
+  .goal-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .goal-item.completed .goal-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .goal-check svg { display: none; }
+  .goal-item.completed .goal-check svg { display: block; }
+
+  .goal-text {
+    flex: 1;
+    font-size: 0.9rem;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .goal-item.completed .goal-text {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .goal-delete {
+    opacity: 0;
+    background: none;
+    border: none;
+    color: var(--accent3);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px;
+    transition: opacity 0.2s;
+  }
+
+  .goals-list:hover .goal-delete { opacity: 0.5; }
+  .goal-delete:hover { opacity: 1 !important; }
+
+  .add-goal-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px 20px;
+  }
+
+  .add-goal-row input { flex: 1; }
+
+  /* No goals state */
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  /* Badges */
+  .badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-you { background: rgba(87,200,255,0.15); color: var(--accent2); border: 1px solid rgba(87,200,255,0.3); }
+  .badge-done { background: rgba(184,255,87,0.15); color: var(--accent); border: 1px solid rgba(184,255,87,0.3); }
+  .badge-partial { background: rgba(255,200,80,0.15); color: #ffc850; border: 1px solid rgba(255,200,80,0.3); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 500;
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    margin: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .modal h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.03em; }
+
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* Utils */
+  .flex { display: flex; gap: 8px; align-items: center; }
+  .mt { margin-top: 16px; }
+  .copied { animation: flash 0.5s ease; }
+  @keyframes flash { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  @media (max-width: 600px) {
+    .welcome-grid { grid-template-columns: 1fr; }
+    .team-name-display { font-size: 1.75rem; }
+    .team-header { flex-direction: column; }
+    .team-actions { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">squad<span>goals</span></div>
+    <div class="date-tag" id="dateTag"></div>
+  </header>
+
+  <!-- Welcome Screen -->
+  <div class="screen active" id="welcomeScreen">
+    <div class="welcome-grid">
+      <div class="card">
+        <h2>Create a Team</h2>
+        <p>Start a new team, set your goals, and invite others to join you.</p>
+        <button class="btn btn-primary" onclick="showModal('createTeamModal')">+ New Team</button>
+      </div>
+      <div class="card">
+        <h2>Join a Team</h2>
+        <p>Got a team code from a friend? Enter it here to join them.</p>
+        <button class="btn btn-outline" onclick="showModal('joinTeamModal')">Join Team →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Screen -->
+  <div class="screen" id="teamScreen">
+    <div class="team-header">
+      <div>
+        <div class="team-name-display" id="teamNameDisplay"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--muted);margin-top:6px;" id="memberCountDisplay"></div>
+      </div>
+      <div class="team-actions">
+        <button class="btn btn-outline btn-sm" onclick="showModal('addMemberModal')">+ Add Member</button>
+        <button class="btn btn-outline btn-sm" onclick="leaveTeam()">Leave</button>
+      </div>
+    </div>
+
+    <div class="share-box">
+      <span id="shareUrl"></span>
+      <button class="btn btn-primary btn-sm" onclick="copyLink()">Copy Link</button>
+    </div>
+
+    <div class="members-grid" id="membersGrid"></div>
+  </div>
+</div>
+
+<!-- Create Team Modal -->
+<div class="modal-overlay" id="createTeamModal">
+  <div class="modal">
+    <h3>Create a Team</h3>
+    <div class="field">
+      <label>Team Name</label>
+      <input type="text" id="newTeamName" placeholder="e.g. Morning Warriors">
+    </div>
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="creatorName" placeholder="e.g. Alex">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('createTeamModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createTeam()">Create →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Join Team Modal -->
+<div class="modal-overlay" id="joinTeamModal">
+  <div class="modal">
+    <h3>Join a Team</h3>
+    <div class="field">
+      <label>Team Code</label>
+      <input type="text" id="joinCode" placeholder="Paste code here...">
+    </div>
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="joinerName" placeholder="e.g. Jordan">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('joinTeamModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="joinTeam()">Join →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal-overlay" id="addMemberModal">
+  <div class="modal">
+    <h3>Add Team Member</h3>
+    <div class="field">
+      <label>Their Name</label>
+      <input type="text" id="newMemberName" placeholder="e.g. Sam">
+    </div>
+    <p style="font-size:0.8rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:8px;">Share the team link with them so they can claim this spot and track their own goals.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('addMemberModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addMember()">Add Member</button>
+    </div>
+  </div>
+</div>
+
+<!-- Claim Member Modal -->
+<div class="modal-overlay" id="claimModal">
+  <div class="modal">
+    <h3>Welcome! Who are you?</h3>
+    <p style="font-size:0.85rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:20px;">Select your name to manage your goals, or join as a new member.</p>
+    <div id="claimList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+    <div style="border-top:1px solid var(--border);padding-top:16px;">
+      <div class="field">
+        <label>Or join as new member</label>
+        <input type="text" id="claimNewName" placeholder="Your name">
+      </div>
+      <button class="btn btn-outline" style="width:100%" onclick="joinAsNew()">Join as New Member</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Storage (uses localStorage, keyed by teamId) ───
+const STORAGE_KEY = 'squadgoals_v1';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Global state
+let state = {
+  teamId: null,
+  myMemberId: null,
+  team: null,
+};
+
+// ─── Date helpers ───
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatDate(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+}
+
+// ─── ID gen ───
+function uid() { return Math.random().toString(36).slice(2,9); }
+
+// ─── Init ───
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dateTag').textContent = formatDate(todayStr());
+
+  // Check URL for team code
+  const params = new URLSearchParams(location.hash.replace('#','?'));
+  const teamId = params.get('team');
+
+  if (teamId) {
+    const data = loadData();
+    if (data[teamId]) {
+      const myId = localStorage.getItem('squadgoals_me_' + teamId);
+      if (myId && data[teamId].members[myId]) {
+        state.teamId = teamId;
+        state.myMemberId = myId;
+        state.team = data[teamId];
+        showTeam();
+      } else {
+        // Show claim modal
+        state.teamId = teamId;
+        state.team = data[teamId];
+        showScreen('teamScreen');
+        renderTeam();
+        showClaimModal();
+      }
+    } else {
+      alert('Team not found. The link may be invalid.');
+    }
+  }
+});
+
+// ─── Screens ───
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── Modals ───
+function showModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ─── Create Team ───
+function createTeam() {
+  const name = document.getElementById('newTeamName').value.trim();
+  const creator = document.getElementById('creatorName').value.trim();
+  if (!name || !creator) { alert('Please fill in all fields'); return; }
+
+  const teamId = uid() + uid();
+  const memberId = uid();
+  const data = loadData();
+
+  data[teamId] = {
+    name,
+    createdAt: todayStr(),
+    members: {
+      [memberId]: { name: creator, goals: [], id: memberId }
+    }
+  };
+
+  saveData(data);
+  localStorage.setItem('squadgoals_me_' + teamId, memberId);
+
+  state.teamId = teamId;
+  state.myMemberId = memberId;
+  state.team = data[teamId];
+
+  closeModal('createTeamModal');
+  showTeam();
+}
+
+// ─── Join Team ───
+function joinTeam() {
+  const code = document.getElementById('joinCode').value.trim();
+  const name = document.getElementById('joinerName').value.trim();
+  if (!code || !name) { alert('Please fill in all fields'); return; }
+
+  const data = loadData();
+  if (!data[code]) { alert('Team not found! Double-check the code.'); return; }
+
+  const memberId = uid();
+  data[code].members[memberId] = { name, goals: [], id: memberId };
+  saveData(data);
+  localStorage.setItem('squadgoals_me_' + code, memberId);
+
+  state.teamId = code;
+  state.myMemberId = memberId;
+  state.team = data[code];
+
+  closeModal('joinTeamModal');
+  location.hash = 'team=' + code;
+  showTeam();
+}
+
+// ─── Add Member (creates placeholder) ───
+function addMember() {
+  const name = document.getElementById('newMemberName').value.trim();
+  if (!name) { alert('Enter a name'); return; }
+
+  const data = loadData();
+  const memberId = uid();
+  data[state.teamId].members[memberId] = { name, goals: [], id: memberId };
+  saveData(data);
+
+  state.team = data[state.teamId];
+  closeModal('addMemberModal');
+  document.getElementById('newMemberName').value = '';
+  renderTeam();
+}
+
+// ─── Claim modal (for visitors via link) ───
+function showClaimModal() {
+  const list = document.getElementById('claimList');
+  list.innerHTML = '';
+  const members = Object.values(state.team.members);
+  members.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-outline';
+    btn.style.cssText = 'width:100%;justify-content:flex-start;';
+    btn.textContent = 'I am ' + m.name;
+    btn.onclick = () => claimMember(m.id);
+    list.appendChild(btn);
+  });
+  showModal('claimModal');
+}
+
+function claimMember(memberId) {
+  localStorage.setItem('squadgoals_me_' + state.teamId, memberId);
+  state.myMemberId = memberId;
+  closeModal('claimModal');
+  renderTeam();
+}
+
+function joinAsNew() {
+  const name = document.getElementById('claimNewName').value.trim();
+  if (!name) { alert('Enter your name'); return; }
+  const data = loadData();
+  const memberId = uid();
+  data[state.teamId].members[memberId] = { name, goals: [], id: memberId };
+  saveData(data);
+  localStorage.setItem('squadgoals_me_' + state.teamId, memberId);
+  state.team = data[state.teamId];
+  state.myMemberId = memberId;
+  closeModal('claimModal');
+  renderTeam();
+}
+
+// ─── Show team ───
+function showTeam() {
+  location.hash = 'team=' + state.teamId;
+  showScreen('teamScreen');
+  renderTeam();
+}
+
+function renderTeam() {
+  const data = loadData();
+  if (state.teamId) state.team = data[state.teamId];
+  const team = state.team;
+  if (!team) return;
+
+  const members = Object.values(team.members);
+  const memberCount = members.length;
+
+  document.getElementById('teamNameDisplay').innerHTML = team.name.replace(/(\S+)\s*$/, '<span>$1</span>');
+  document.getElementById('memberCountDisplay').textContent = memberCount + ' member' + (memberCount !== 1 ? 's' : '') + ' · ' + formatDate(todayStr());
+
+  const shareUrl = location.origin + location.pathname + '#team=' + state.teamId;
+  document.getElementById('shareUrl').textContent = shareUrl;
+
+  const grid = document.getElementById('membersGrid');
+  grid.innerHTML = '';
+
+  members.forEach(member => {
+    const isMe = member.id === state.myMemberId;
+    const todayGoals = getTodayGoals(member);
+    const completed = todayGoals.filter(g => g.done).length;
+    const total = todayGoals.length;
+    const pct = total ? Math.round(completed / total * 100) : 0;
+
+    const colors = ['#b8ff57','#57c8ff','#ff6b6b','#ffc850','#c8a0ff','#ff9f57'];
+    const colorIdx = members.indexOf(member) % colors.length;
+
+    const card = document.createElement('div');
+    card.className = 'member-card' + (isMe ? ' is-me' : '');
+
+    let badge = '';
+    if (total > 0) {
+      if (pct === 100) badge = '<span class="badge badge-done">✓ Done</span>';
+      else if (pct > 0) badge = '<span class="badge badge-partial">' + pct + '%</span>';
+    }
+    if (isMe) badge += '<span class="badge badge-you">You</span>';
+
+    card.innerHTML = `
+      <div class="member-header">
+        <div class="avatar" style="background:${colors[colorIdx]}22;color:${colors[colorIdx]}">${member.name[0].toUpperCase()}</div>
+        <div class="member-info">
+          <div class="member-name">${member.name} ${badge}</div>
+          <div class="member-stats">${completed}/${total} goals completed today</div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+        </div>
+      </div>
+      <div class="goals-list" id="goals_${member.id}">
+        ${renderGoals(member, isMe)}
+      </div>
+      ${isMe ? `
+      <div class="add-goal-row">
+        <input type="text" id="newGoal_${member.id}" placeholder="Add a goal for today..." onkeydown="if(event.key==='Enter')addGoal('${member.id}')">
+        <button class="btn btn-primary btn-sm" onclick="addGoal('${member.id}')">+</button>
+      </div>` : ''}
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function getTodayGoals(member) {
+  const today = todayStr();
+  return (member.goals || []).filter(g => g.date === today);
+}
+
+function renderGoals(member, isMe) {
+  const goals = getTodayGoals(member);
+  if (!goals.length) {
+    return `<div class="empty-state">${isMe ? 'No goals yet — add one below!' : 'No goals set yet.'}</div>`;
+  }
+  return goals.map(g => `
+    <div class="goal-item ${g.done ? 'completed' : ''}" id="goalitem_${g.id}">
+      <div class="goal-check" ${isMe ? `onclick="toggleGoal('${member.id}','${g.id}')"` : ''}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2 6l3 3 5-5" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="goal-text">${g.text}</div>
+      ${isMe ? `<button class="goal-delete" onclick="deleteGoal('${member.id}','${g.id}')">✕</button>` : ''}
+    </div>
+  `).join('');
+}
+
+// ─── Goal actions ───
+function addGoal(memberId) {
+  const input = document.getElementById('newGoal_' + memberId);
+  const text = input.value.trim();
+  if (!text) return;
+
+  const data = loadData();
+  const member = data[state.teamId].members[memberId];
+  if (!member.goals) member.goals = [];
+  member.goals.push({ id: uid(), text, done: false, date: todayStr() });
+  saveData(data);
+  state.team = data[state.teamId];
+  input.value = '';
+  renderTeam();
+}
+
+function toggleGoal(memberId, goalId) {
+  const data = loadData();
+  const member = data[state.teamId].members[memberId];
+  const goal = member.goals.find(g => g.id === goalId);
+  if (goal) goal.done = !goal.done;
+  saveData(data);
+  state.team = data[state.teamId];
+  renderTeam();
+}
+
+function deleteGoal(memberId, goalId) {
+  const data = loadData();
+  const member = data[state.teamId].members[memberId];
+  member.goals = member.goals.filter(g => g.id !== goalId);
+  saveData(data);
+  state.team = data[state.teamId];
+  renderTeam();
+}
+
+// ─── Share ───
+function copyLink() {
+  const url = location.origin + location.pathname + '#team=' + state.teamId;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.share-box button');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy Link', 2000);
+  });
+}
+
+// ─── Leave ───
+function leaveTeam() {
+  if (!confirm('Leave this team? You can rejoin using the link.')) return;
+  localStorage.removeItem('squadgoals_me_' + state.teamId);
+  state = { teamId: null, myMemberId: null, team: null };
+  location.hash = '';
+  showScreen('welcomeScreen');
+}
+</script>
+</body>
+</html>
