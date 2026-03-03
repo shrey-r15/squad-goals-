@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lock in</title>
+<title>Squad Goals</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -156,6 +156,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
 
+
+  .cliff-photo-label{cursor:pointer;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:3px 9px;float:right;margin-bottom:6px;transition:color .2s,border-color .2s;}
+  .cliff-photo-label:hover{color:var(--text);border-color:var(--accent);}
   .cliff-wrap{position:relative;width:100%;height:160px;margin:14px 0 8px;border-radius:12px;overflow:hidden;background:linear-gradient(180deg,#050510 0%,#0d0d25 55%,#241608 80%,#3a2208 100%);}
   .cliff-ground{position:absolute;bottom:0;left:0;width:56%;height:33%;background:linear-gradient(180deg,#4a2f0c,#2a1808);border-top-right-radius:24px;}
   .cliff-void{position:absolute;bottom:0;right:0;width:46%;height:34%;background:linear-gradient(90deg,#0d0d25,#050510);border-top-left-radius:24px;}
@@ -287,6 +290,10 @@
             <button class="btn btn-outline" onclick="timerReset()">↺ Reset</button>
           </div>
           <div class="timer-status" id="timerStatus">Ready to focus</div>
+      <div style="overflow:hidden;margin-bottom:4px;">
+        <label class="cliff-photo-label" for="cliffPhotoInput">📷 use my photo</label>
+        <input type="file" id="cliffPhotoInput" accept="image/*" style="display:none" onchange="loadCliffPhoto(event)">
+      </div>
       <div class="cliff-wrap">
         <div class="cliff-ground"></div>
         <div class="cliff-void"></div>
@@ -737,6 +744,17 @@
   }
 
 
+
+  function loadCliffPhoto(e){
+    var file=e.target.files[0];
+    if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      var img=document.querySelector('#gChar img');
+      if(img)img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
   function gState(s){const el=document.getElementById('gChar');if(el)el.className='g-char '+s;}
   function gFall(){
     gState('falling');
