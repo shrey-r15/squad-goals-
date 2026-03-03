@@ -231,9 +231,9 @@
   if (urlTeamId) {
     state.teamId = urlTeamId;
     const myId = localStorage.getItem('squadgoals_me_' + urlTeamId);
+    state.myMemberId = myId || null;
     showScreen('teamScreen');
     setupRealtimeListener(urlTeamId, myId);
-    if (myId) state.myMemberId = myId;
   }
 
   // ── Realtime listener ──
@@ -246,12 +246,10 @@
         document.getElementById('membersGrid').innerHTML = '<div class="loading">Team not found.</div>';
         return;
       }
-      // If we don't know who we are yet, show claim modal
-      if (!state.myMemberId) {
-        renderTeam(team, null);
+      renderTeam(team, state.myMemberId);
+      // Show claim modal if we don't know who we are yet
+      if (!state.myMemberId && !document.getElementById('claimModal').classList.contains('open')) {
         showClaimModal(team, teamId);
-      } else {
-        renderTeam(team, state.myMemberId);
       }
     });
   }
@@ -325,15 +323,17 @@
       btn.className = 'btn btn-outline';
       btn.style.cssText = 'width:100%;justify-content:flex-start;';
       btn.textContent = 'I am ' + m.name;
-      btn.onclick = () => {
-        localStorage.setItem('squadgoals_me_' + teamId, m.id);
-        state.myMemberId = m.id;
-        closeModal('claimModal');
-      };
+      btn.onclick = () => window.claimMember(m.id);
       list.appendChild(btn);
     });
     showModal('claimModal');
   }
+
+  window.claimMember = (memberId) => {
+    localStorage.setItem('squadgoals_me_' + state.teamId, memberId);
+    state.myMemberId = memberId;
+    closeModal('claimModal');
+  };
 
   window.joinAsNew = async () => {
     const name = document.getElementById('claimNewName').value.trim();
@@ -395,6 +395,7 @@
             <div class="member-stats">${completed}/${total} goals completed today</div>
             <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
           </div>
+          ${!myMemberId ? `<button class="btn btn-outline btn-sm" onclick="claimMember('${member.id}')">This is me</button>` : ''}
         </div>
         <div class="goals-list">${goalsHtml}</div>
         ${isMe ? `<div class="add-goal-row">
